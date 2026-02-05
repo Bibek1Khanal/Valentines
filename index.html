@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini VN</title>
+  <style>
+    :root{
+      --bg1:#0b1020;
+      --bg2:#1a1436;
+      --panel:#0f1220cc;
+      --text:#f4f5ff;
+      --muted:#c9c9e6;
+      --accent:#ff4d8d;
+      --btn:#1c2240;
+      --btn2:#2a3160;
+      --radius:18px;
+    }
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 70% 20%, #3b1a6b55, transparent 60%),
+        radial-gradient(700px 500px at 20% 70%, #0ea5e955, transparent 60%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      padding:20px;
+    }
+    .game{
+      width:min(980px, 96vw);
+      height:min(620px, 85vh);
+      border-radius:24px;
+      overflow:hidden;
+      position:relative;
+      box-shadow: 0 25px 70px #00000066;
+      border: 1px solid #ffffff12;
+      background:
+        radial-gradient(900px 600px at 50% 20%, #ffffff0b, transparent 55%),
+        linear-gradient(180deg, #ffffff08, transparent 35%);
+    }
+    .stage{
+      position:absolute;
+      inset:0;
+      padding:28px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+    }
+    .character-wrap{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      padding-bottom:140px; /* room for textbox */
+      pointer-events:none;
+    }
+    .sprite{
+      max-height: 420px;
+      max-width: min(520px, 85vw);
+      object-fit: contain;
+      filter: drop-shadow(0 18px 40px rgba(0,0,0,.55));
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    .badge{
+      position:absolute;
+      bottom:24px;
+      left:24px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid #ffffff18;
+      background:#00000033;
+      backdrop-filter: blur(10px);
+    }
+    .ui{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      padding:18px;
+      display:flex;
+      justify-content:center;
+    }
+    .textbox{
+      width:min(920px, 96vw);
+      border-radius:var(--radius);
+      background:var(--panel);
+      border:1px solid #ffffff14;
+      backdrop-filter: blur(14px);
+      padding:16px 16px 14px;
+      box-shadow: 0 20px 50px #00000055;
+    }
+    .namebar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .name{
+      font-weight:700;
+      letter-spacing:.2px;
+      color:#fff;
+    }
+    .dot{
+      width:7px; height:7px; border-radius:50%;
+      background: linear-gradient(180deg, var(--accent), #ff9ac0);
+      box-shadow: 0 0 20px #ff4d8d77;
+    }
+    .hint{
+      margin-left:auto;
+      font-size:12px;
+      color:var(--muted);
+      opacity:.9;
+    }
+    .dialogue{
+      font-size:18px;
+      line-height:1.35;
+      min-height:70px;
+      padding:2px 2px 8px;
+      white-space: pre-wrap;
+    }
+    .actions{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    button{
+      border:1px solid #ffffff18;
+      background: linear-gradient(180deg, var(--btn), var(--btn2));
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:14px;
+      font-size:14px;
+      cursor:pointer;
+      transition: transform .12s ease, filter .12s ease, padding .12s ease, opacity .12s ease;
+      user-select:none;
+    }
+    button:hover{ filter: brightness(1.08); }
+    button:active{ transform: scale(0.98); }
+    .primary{
+      border-color:#ff4d8d55;
+      background: linear-gradient(180deg, #ff4d8d, #d61f61);
+      box-shadow: 0 10px 30px #ff4d8d33;
+      font-weight:700;
+    }
+    .ghost{
+      background: transparent;
+      border-color:#ffffff24;
+    }
+    .choices{
+      display:none;
+      gap:12px;
+      justify-content:flex-end;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .nextRow{
+      display:flex;
+      justify-content:flex-end;
+    }
+    .sparkle{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.35;
+      background:
+        radial-gradient(2px 2px at 18% 22%, #fff, transparent 60%),
+        radial-gradient(2px 2px at 70% 35%, #fff, transparent 60%),
+        radial-gradient(2px 2px at 52% 68%, #fff, transparent 60%),
+        radial-gradient(2px 2px at 82% 62%, #fff, transparent 60%);
+    }
+  </style>
+</head>
+<body>
+  <div class="game" id="game">
+    <div class="sparkle"></div>
+
+    <div class="stage">
+      <div class="character-wrap">
+        <img id="sprite" class="sprite" src="wave.png" alt="Character sprite" />
+      </div>
+      <div class="badge">Mini VN • Click “Next” to advance</div>
+    </div>
+
+    <div class="ui">
+      <div class="textbox">
+        <div class="namebar">
+          <span class="dot"></span>
+          <span class="name" id="speaker">???</span>
+          <span class="hint" id="hint">Press Next</span>
+        </div>
+
+        <div class="dialogue" id="dialogue"></div>
+
+        <div class="actions">
+          <div class="choices" id="choices">
+            <button class="primary" id="yesBtn">Yes 💘</button>
+            <button class="ghost" id="noBtn">No 🙃</button>
+          </div>
+
+          <div class="nextRow" id="nextRow">
+            <button id="nextBtn">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PLAYER_NAME = "Janu";
+    const CHARACTER_NAME = "Bibu";
+
+    const SPRITES = {
+      wave: "wave.png",
+      confused: "confused.png",
+      valentines: "valentines.png",
+      success: "success.png",
+      grumpy: "grumpy.png",
+      thinking: "thinking.png",
+      point: "point.png",
+      cry: "cry.png",
+      tired: "tired.png",
+      shocked: "shocked.png",
+      kiss: "kiss.png",
+    };
+
+    // After this many "No" clicks, the No button vanishes
+    const NO_VANISH_AT = 5;
+
+    // Preload
+    Object.values(SPRITES).forEach(src => { const img = new Image(); img.src = src; });
+
+    const script = [
+      { speaker: CHARACTER_NAME, sprite: "wave", text: `Hello, ${PLAYER_NAME}!` },
+      { speaker: CHARACTER_NAME, sprite: "thinking", text: `I’ve been practicing what to say...` },
+      { speaker: CHARACTER_NAME, sprite: "point", text: `Okay, I’m just gonna be brave for once.` },
+      { speaker: CHARACTER_NAME, sprite: "tired", text: `I stayed up way too late rehearsing this.` },
+      { speaker: CHARACTER_NAME, sprite: "shocked", text: `Alright… here goes nothing.` },
+      { speaker: CHARACTER_NAME, sprite: "valentines", text: `Would you want to be my Valentine?`, type: "choice" }
+    ];
+
+    const spriteEl = document.getElementById("sprite");
+    const speakerEl = document.getElementById("speaker");
+    const dialogueEl = document.getElementById("dialogue");
+    const hintEl = document.getElementById("hint");
+
+    const nextBtn = document.getElementById("nextBtn");
+    const nextRow = document.getElementById("nextRow");
+
+    const choices = document.getElementById("choices");
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
+
+    let index = 0;
+    let noCount = 0;
+
+    // End-state flow:
+    // 0 = normal
+    // 1 = accepted (show shocked, wait for Next)
+    // 2 = kissed (show kiss, wait for Next)
+    // 3 = success (show success + end, Next becomes Restart)
+    let endStage = 0;
+
+    function setSprite(key){
+      spriteEl.src = SPRITES[key] || SPRITES.wave;
+      spriteEl.alt = `Sprite: ${key}`;
+    }
+
+    function showLine(line){
+      speakerEl.textContent = line.speaker ?? "???";
+      dialogueEl.textContent = line.text ?? "";
+      if (line.sprite) setSprite(line.sprite);
+    }
+
+    function enterChoiceMode(){
+      hintEl.textContent = "Choose…";
+      nextRow.style.display = "none";
+      choices.style.display = "flex";
+    }
+
+    function exitChoiceMode(){
+      choices.style.display = "none";
+      nextRow.style.display = "flex";
+      hintEl.textContent = "Press Next";
+    }
+
+    function render(){
+      const line = script[index];
+      showLine(line);
+
+      if(line.type === "choice"){
+        enterChoiceMode();
+      } else {
+        exitChoiceMode();
+      }
+    }
+
+    function maybeVanishNo(){
+      if (noCount >= NO_VANISH_AT){
+        noBtn.style.display = "none";
+      }
+    }
+
+    function growYesButton(){
+      noCount += 1;
+
+      const scale = 1 + (noCount * 0.18);
+      const padY = 10 + (noCount * 2);
+      const padX = 14 + (noCount * 4);
+
+      yesBtn.style.transform = `scale(${scale})`;
+      yesBtn.style.padding = `${padY}px ${padX}px`;
+
+      const reactions = [
+        { sprite: "grumpy",   text: "No? Wow. That hurt a tiny bit. 😤" },
+        { sprite: "confused", text: "Wait, really? Are you sure you clicked the right one?" },
+        { sprite: "cry",      text: "Okay now you’re just bullying me… 😭" },
+        { sprite: "tired",    text: "I can do this all day. I’m stubborn." },
+        { sprite: "thinking",  text: "Alright... The No button is losing privileges." }
+      ];
+
+      const r = reactions[Math.min(noCount - 1, reactions.length - 1)];
+      setSprite(r.sprite);
+      speakerEl.textContent = CHARACTER_NAME;
+      dialogueEl.textContent = r.text;
+
+      // Slowly make "No" less tempting
+      noBtn.style.transform = `scale(${Math.max(0.85, 1 - noCount * 0.05)})`;
+      noBtn.style.opacity = `${Math.max(0.35, 1 - noCount * 0.18)}`;
+
+      maybeVanishNo();
+    }
+
+    // NEW acceptance flow:
+    // Click Yes -> show shocked.png immediately.
+    // Next -> show kiss.png
+    // Next -> show success.png and end (Next becomes Restart)
+    function acceptYes(){
+      endStage = 1;
+
+      // Show shocked immediately and switch to Next
+      setSprite("shocked");
+      speakerEl.textContent = CHARACTER_NAME;
+      dialogueEl.textContent = `Wait YES?! 😳💖`;
+      hintEl.textContent = "Press Next";
+      choices.style.display = "none";
+      nextRow.style.display = "flex";
+      nextBtn.textContent = "Next ▶";
+    }
+
+    function advanceEndStages(){
+      if (endStage === 1){
+        // Next after shocked -> kiss
+        endStage = 2;
+        setSprite("kiss");
+        speakerEl.textContent = CHARACTER_NAME;
+        dialogueEl.textContent = `Come here… mwah 😘`;
+        hintEl.textContent = "Press Next";
+        return;
+      }
+
+      if (endStage === 2){
+        // Next after kiss -> success
+        endStage = 3;
+        setSprite("success");
+        speakerEl.textContent = CHARACTER_NAME;
+        dialogueEl.textContent = `You just made my whole day, ${PLAYER_NAME}. 💞
+        Happy Maha Shivaratri in advance!`;
+        hintEl.textContent = "The End";
+        nextBtn.textContent = "Restart ↺";
+        return;
+      }
+
+      if (endStage === 3){
+        restart();
+      }
+    }
+
+    function restart(){
+      index = 0;
+      noCount = 0;
+      endStage = 0;
+
+      yesBtn.style.transform = "scale(1)";
+      yesBtn.style.padding = "10px 14px";
+
+      noBtn.style.display = "inline-block";
+      noBtn.style.transform = "scale(1)";
+      noBtn.style.opacity = "1";
+
+      nextBtn.textContent = "Next ▶";
+      render();
+    }
+
+    function advance(){
+      // If in ending sequence, advance that flow
+      if (endStage !== 0){
+        advanceEndStages();
+        return;
+      }
+
+      const line = script[index];
+      if(line.type === "choice") return;
+
+      index += 1;
+      if(index >= script.length) index = script.length - 1;
+      render();
+    }
+
+    nextBtn.addEventListener("click", advance);
+    noBtn.addEventListener("click", growYesButton);
+    yesBtn.addEventListener("click", acceptYes);
+
+    render();
+  </script>
+</body>
+</html>
